@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hybrid AI starter</title>
+  <style>
+    :root { --bg:#f6f6f3; --fg:#1b1b18; --muted:#6b6b63; --line:#d9d9d2; --accent:#1f6f5c; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#151513; --fg:#ecece6; --muted:#9a9a90; --line:#33332e; --accent:#5fc3a8; } }
+    body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
+    main { max-width:720px; margin:0 auto; padding:24px 16px; }
+    textarea { width:100%; min-height:120px; box-sizing:border-box; background:transparent; color:inherit; border:1px solid var(--line); padding:8px; font:inherit; }
+    button { margin:8px 8px 0 0; padding:8px 14px; border:1px solid var(--accent); background:transparent; color:var(--accent); font:inherit; cursor:pointer; }
+    #badge, #device { color:var(--muted); font-size:14px; }
+    pre { white-space:pre-wrap; border-top:1px solid var(--line); padding-top:12px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Hybrid AI starter</h1>
+  <p id="device">On-device model: checking...</p>
+  <button id="prepare">Prepare on-device model</button>
+  <textarea id="prompt">Reply with the single word: ok</textarea>
+  <button id="local">Run on device only</button>
+  <button id="cloud">Run in cloud only</button>
+  <p id="badge"></p>
+  <pre id="out"></pre>
+</main>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

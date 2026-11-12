@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "site": "redactgate-hybrid-2026",
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  }
+}

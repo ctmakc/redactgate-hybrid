@@ -1,0 +1,21 @@
+{
+  "name": "firebase-hybrid-starter",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Generic Firebase AI Logic hybrid (on-device + cloud) web starter for #BuildHybridAI. No feature code.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "firebase": "13.2.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2",
+    "vite": "7.1.5",
+    "vitest": "3.2.4"
+  }
+}
