@@ -3,29 +3,179 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hybrid AI starter</title>
-  <style>
-    :root { --bg:#f6f6f3; --fg:#1b1b18; --muted:#6b6b63; --line:#d9d9d2; --accent:#1f6f5c; }
-    @media (prefers-color-scheme: dark) { :root { --bg:#151513; --fg:#ecece6; --muted:#9a9a90; --line:#33332e; --accent:#5fc3a8; } }
-    body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif; }
-    main { max-width:720px; margin:0 auto; padding:24px 16px; }
-    textarea { width:100%; min-height:120px; box-sizing:border-box; background:transparent; color:inherit; border:1px solid var(--line); padding:8px; font:inherit; }
-    button { margin:8px 8px 0 0; padding:8px 14px; border:1px solid var(--accent); background:transparent; color:var(--accent); font:inherit; cursor:pointer; }
-    #badge, #device { color:var(--muted); font-size:14px; }
-    pre { white-space:pre-wrap; border-top:1px solid var(--line); padding-top:12px; }
-  </style>
+  <title>RedactGate Hybrid: private data stays on your device, only tokens reach the cloud</title>
+  <meta name="description" content="Gemini Nano finds private details on your device and swaps them for tokens. Cloud Gemini only sees the tokens. The answer is restored on your device, and a log shows exactly what left." />
+  <meta name="theme-color" content="#D6DCDE" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta property="og:title" content="RedactGate Hybrid" />
+  <meta property="og:description" content="Private details stay on your device. Only tokens pass to the cloud." />
+  <meta property="og:image" content="https://redactgate-hybrid-2026.web.app/og.png" />
+  <meta property="og:url" content="https://redactgate-hybrid-2026.web.app/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="canonical" href="https://redactgate-hybrid-2026.web.app/" />
+  <meta name="mmix-review-endpoint" content="https://review.mmix.biz/api/review" />
+  <link rel="stylesheet" href="/mmix-kit/bugreport.css" />
 </head>
 <body>
+<a class="skip" href="#device">Skip to the tool</a>
+
+<header class="bar" role="banner">
+  <a class="mark" href="/" aria-label="RedactGate Hybrid home">
+    <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="1" y="1" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="1" width="6" height="26" fill="currentColor"/><circle cx="6" cy="6" r="2.5" class="m-go"/><circle cx="22" cy="6" r="2.5" class="m-cob"/></svg>
+    <span>RedactGate <b>Hybrid</b></span>
+  </a>
+  <div class="lamps" aria-live="polite">
+    <span class="lamp" id="lamp-device" data-state="off"><i></i><span>Gemini Nano <em id="nano-state">checking</em></span></span>
+    <span class="lamp" id="lamp-cloud" data-state="go"><i></i><span>Cloud Gemini <em>tokens only</em></span></span>
+  </div>
+  <a class="gh" href="https://github.com/ctmakc/redactgate-hybrid" rel="noopener">Source</a>
+</header>
+
 <main>
-  <h1>Hybrid AI starter</h1>
-  <p id="device">On-device model: checking...</p>
-  <button id="prepare">Prepare on-device model</button>
-  <textarea id="prompt">Reply with the single word: ok</textarea>
-  <button id="local">Run on device only</button>
-  <button id="cloud">Run in cloud only</button>
-  <p id="badge"></p>
-  <pre id="out"></pre>
+  <section class="hero" aria-labelledby="h1">
+    <div class="hero-copy">
+      <p class="placard">Pass-through hatch for AI prompts</p>
+      <h1 id="h1"><span class="ln">Your document stays here.</span> <span class="ln">Only tokens go through.</span></h1>
+      <p class="lede">Gemini Nano reads the document on this device and swaps every name, number and address for a token. Cloud Gemini works with the tokens. The answer comes back and is filled in here, and the log shows exactly what left.</p>
+      <div class="hero-act">
+        <a class="btn btn-go" href="#device" data-demo="client-email">Try a client email</a>
+        <a class="btn btn-line" href="#how">How the hatch works</a>
+      </div>
+    </div>
+    <figure class="hero-art">
+      <img src="/hatch.svg" width="720" height="440" alt="Cutaway of a pass-through hatch: the original document stays in the device room, a tokenized copy goes to the cloud room." fetchpriority="high" />
+    </figure>
+  </section>
+
+  <section class="rig" id="device" aria-label="The tool">
+    <div class="chamber chamber-device" aria-labelledby="dev-h">
+      <div class="ch-head">
+        <h2 id="dev-h" class="ch-label"><i class="dot dot-go"></i>Device room</h2>
+        <p class="ch-sub">Nothing in this room leaves your browser.</p>
+      </div>
+
+      <div class="step" id="step-doc">
+        <div class="step-h"><span class="n">01</span><h3>Document</h3></div>
+        <div class="demos" role="group" aria-label="Demo documents"></div>
+        <label class="fld" id="doc-fld">
+          <span>Paste text, drop a .txt file, or pick a demo</span>
+          <textarea id="doc" rows="12" spellcheck="false" placeholder="Paste an email, a note, a résumé…"></textarea>
+        </label>
+        <label class="fld">
+          <span>What should the AI do with it?</span>
+          <input id="task" type="text" autocomplete="off" placeholder="Summarize it in three bullet points" />
+        </label>
+        <div class="row">
+          <button class="btn btn-go" id="scan" type="button">Find private details on this device</button>
+          <button class="btn btn-line" id="nano-get" type="button" hidden>Download Gemini Nano</button>
+          <button class="btn btn-line btn-sm" id="edit-doc" type="button" hidden>Edit the text</button>
+          <span class="meta" id="scan-meta" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div class="step" id="step-review" hidden>
+        <div class="step-h"><span class="n">02</span><h3>Review what will be hidden</h3></div>
+        <p class="hint">Tap a highlight to let it through or hide it again. Select any text to hide it too.</p>
+        <div class="legend" id="legend"></div>
+        <div class="doc-view" id="doc-view" tabindex="0" aria-label="Document with private details highlighted"></div>
+        <div class="selbar" id="selbar" hidden>
+          <span>Hide “<b id="sel-text"></b>” as</span>
+          <select id="sel-type" aria-label="Type"><option>PERSON</option><option>ORG</option><option>ADDRESS</option><option>ID</option><option>DATE</option><option>ACCOUNT</option></select>
+          <button class="btn btn-sm btn-go" id="sel-add" type="button">Hide</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hatch" aria-labelledby="hatch-h">
+      <div class="door door-l" aria-hidden="true"></div>
+      <div class="hatch-core">
+        <h2 id="hatch-h" class="hatch-label">Hatch</h2>
+        <div class="guard" id="guard" data-state="idle" aria-live="polite">
+          <i></i><span id="guard-text">Waiting for a document</span>
+        </div>
+        <ul class="leaks" id="leaks" hidden></ul>
+        <button class="btn btn-cob" id="send" type="button" disabled>Send tokens to the cloud</button>
+        <button class="btn btn-line btn-sm" id="run-local" type="button" disabled>Or keep it here: answer with Nano</button>
+      </div>
+      <div class="door door-r" aria-hidden="true"></div>
+    </div>
+
+    <div class="chamber chamber-cloud" aria-labelledby="cloud-h">
+      <div class="ch-head">
+        <h2 id="cloud-h" class="ch-label"><i class="dot dot-cob"></i>Cloud room</h2>
+        <p class="ch-sub">What Gemini in the cloud receives. Exactly this, nothing more.</p>
+      </div>
+      <pre class="outgoing" id="outgoing" aria-label="Text that will be sent to the cloud"><span class="empty">The tokenized copy appears here after the scan.</span></pre>
+      <p class="meta" id="out-meta"></p>
+    </div>
+  </section>
+
+  <section class="custody" id="custody" hidden aria-labelledby="cust-h">
+    <h2 id="cust-h" class="sec-h">Custody split</h2>
+    <div class="split">
+      <div class="stays">
+        <h3><i class="dot dot-go"></i>Stays on this device</h3>
+        <table class="vault"><thead><tr><th>Token</th><th>Real value</th><th>Found by</th></tr></thead><tbody id="vault-rows"></tbody></table>
+      </div>
+      <div class="goes">
+        <h3><i class="dot dot-cob"></i>Goes to the cloud</h3>
+        <ul class="tok-list" id="tok-list"></ul>
+        <p class="meta" id="goes-meta"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="answer" id="answer" hidden aria-labelledby="ans-h">
+    <h2 id="ans-h" class="sec-h">Answer</h2>
+    <div class="split">
+      <div class="ans-raw">
+        <h3><span class="tier" id="raw-tier">in_cloud</span> As it came back</h3>
+        <pre id="ans-raw"></pre>
+      </div>
+      <div class="ans-final">
+        <h3><span class="tier tier-dev">on_device</span> Filled in on this device</h3>
+        <div id="ans-final" class="final"></div>
+        <p class="warn" id="ans-warn" hidden></p>
+        <div class="row"><button class="btn btn-line btn-sm" id="copy" type="button">Copy answer</button><span class="meta" id="ans-meta"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ledger" id="ledger" aria-labelledby="led-h">
+    <div class="led-head">
+      <h2 id="led-h" class="sec-h">What left this device</h2>
+      <div class="row">
+        <button class="btn btn-line btn-sm" id="led-export" type="button">Export JSON</button>
+        <button class="btn btn-line btn-sm" id="led-clear" type="button">Clear</button>
+      </div>
+    </div>
+    <p class="hint">Every run is written here, in this browser only. Cloud runs keep the exact text that was sent.</p>
+    <ol class="led-rows" id="led-rows"></ol>
+  </section>
+
+  <section class="how" id="how" aria-labelledby="how-h">
+    <h2 id="how-h" class="sec-h">How the hatch works</h2>
+    <ol class="how-rows">
+      <li><span class="n">01</span><div><h3>Find, on the device</h3><p>Checksum-verified patterns catch SINs, cards, health numbers and IBANs. Gemini Nano, through Firebase AI Logic in <code>ONLY_ON_DEVICE</code> mode with a JSON schema, finds names, organizations and addresses. If Nano is missing, the patterns still run and the cloud never stands in for it.</p></div></li>
+      <li><span class="n">02</span><div><h3>Swap for tokens</h3><p>Each value gets a stable token like <code>[[PERSON_1]]</code>. The table of real values lives in this tab’s memory and is gone on reload.</p></div></li>
+      <li><span class="n">03</span><div><h3>Check before the door opens</h3><p>The guard re-scans the outgoing text for every real value and every pattern. One hit keeps the cloud door shut.</p></div></li>
+      <li><span class="n">04</span><div><h3>Ask the cloud with tokens</h3><p>Firebase AI Logic in <code>ONLY_IN_CLOUD</code> mode sends the tokenized text to Gemini. Each answer shows its <code>inferenceSource</code>.</p></div></li>
+      <li><span class="n">05</span><div><h3>Fill in, on the device</h3><p>Tokens in the answer are replaced with the real values here. Tokens the model made up are flagged, and the run goes to the log.</p></div></li>
+    </ol>
+    <p class="prior">Built on <a href="https://github.com/ctmakc/redactgate" rel="noopener">RedactGate</a>, our earlier server-side redaction gateway. This version is new: the detection runs in the browser with Gemini Nano, and the cloud step goes through Firebase AI Logic.</p>
+  </section>
 </main>
+
+<footer class="foot">
+  <span>RedactGate Hybrid, MIT licence. Demo documents are fictional.</span>
+  <span>Built with Firebase AI Logic, Gemini Nano and Gemini 3.5 Flash-Lite.</span>
+</footer>
+
+<a class="sticky-cta btn btn-go" id="sticky" href="#device">Run the demo</a>
+
 <script type="module" src="/src/main.ts"></script>
+<script src="/mmix-kit/bugreport.js" defer></script>
+<script type="module" src="/mmix-kit/review-kit/launcher.js"></script>
 </body>
 </html>

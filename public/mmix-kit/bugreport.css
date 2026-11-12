@@ -1,0 +1,33 @@
+/* Studio-standard bug button for sitefast pages (kit from CHUDOVI). Neutral by default; a page re-tokens it with
+   --bugr-bg / --bugr-fg / --bugr-dim / --bugr-line / --bugr-accent / --bugr-accent-ink, or overrides .bugr* rules
+   in its own <style> (this file is linked first in <head>, so page rules win). */
+.bugr{ --b-bg:var(--bugr-bg,#16181B); --b-fg:var(--bugr-fg,#EEF0F2); --b-dim:var(--bugr-dim,#A3AAB2); --b-line:var(--bugr-line,#30353C);
+  --b-acc:var(--bugr-accent,#FFC72C); --b-acc-ink:var(--bugr-accent-ink,#111214);
+  position:fixed; z-index:120; right:16px; bottom:18px; font:400 14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+.bugr-btn{ display:grid; place-items:center; width:40px; height:40px; padding:0; border:1px solid var(--b-line); border-radius:999px;
+  background:var(--b-bg); color:var(--b-dim); cursor:pointer; opacity:.8; transition:opacity .2s,color .2s,border-color .2s; }
+.bugr-btn:hover,.bugr-btn:focus-visible,.bugr-btn[aria-expanded="true"]{ opacity:1; color:var(--b-acc); border-color:var(--b-acc); }
+.bugr-btn:focus-visible{ outline:2px solid var(--b-acc); outline-offset:2px; }
+.bugr-veil{ position:fixed; inset:0; background:rgb(8 9 12 / .5); }
+.bugr-dlg{ position:fixed; right:16px; bottom:68px; width:min(380px,calc(100vw - 24px)); max-height:calc(100dvh - 96px); overflow-y:auto;
+  padding:18px; box-sizing:border-box; border:1px solid var(--b-line); border-radius:6px; background:var(--b-bg); color:var(--b-fg); outline:none; }
+.bugr-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.bugr-head h2{ margin:0; font:600 1.2rem/1.2 inherit; color:var(--b-fg); letter-spacing:0; text-transform:none; }
+.bugr-x{ width:32px; height:32px; margin:-6px -6px 0 0; border:0; background:none; color:var(--b-dim); font-size:22px; line-height:1; cursor:pointer; }
+.bugr-lede{ margin:6px 0 12px; font-size:13px; color:var(--b-dim); }
+.bugr form{ display:grid; gap:12px; }
+.bugr-or{ margin:2px 0 0; font-size:13px; color:var(--b-dim); }
+.bugr label{ display:grid; gap:4px; font-size:13px; font-weight:600; }
+.bugr textarea,.bugr input[type="email"]{ width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid var(--b-line); border-radius:3px;
+  background:rgb(0 0 0 / .25); color:var(--b-fg); font:400 16px/1.4 inherit; }
+.bugr textarea{ min-height:92px; resize:vertical; }
+.bugr textarea:focus,.bugr input:focus{ outline:2px solid var(--b-acc); outline-offset:0; }
+.bugr small{ font-weight:400; color:var(--b-dim); }
+.bugr-hp{ position:absolute; left:-9999px; width:1px; height:1px; opacity:0; }
+.bugr-err{ margin:0; color:#FF8A80; font-size:13px; }
+.bugr-send,.bugr-done button{ justify-self:start; min-height:44px; padding:0 18px; border:0; border-radius:3px; background:var(--b-acc); color:var(--b-acc-ink);
+  font:700 .95rem/1 inherit; cursor:pointer; }
+.bugr-send:disabled{ opacity:.7; }
+.bugr-done p{ margin:4px 0 12px; font-weight:600; }
+@media (max-width:760px){ .bugr{ right:10px; bottom:calc(14px + env(safe-area-inset-bottom)); } .bugr-dlg{ right:12px; bottom:calc(62px + env(safe-area-inset-bottom)); } }
+@media print{ .bugr{ display:none; } }

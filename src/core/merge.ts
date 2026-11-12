@@ -7,8 +7,15 @@ const RANK: Record<Span["source"], number> = { manual: 4, regex: 3, nano: 2, ali
  * Priority: manual > regex (validated) > nano > alias; on ties the longer span wins.
  */
 export function mergeSpans(spans: Span[]): Span[] {
+  // A model-found full address ("12 Main St, Unit 4, Ottawa, ON K1S 3X7") beats the shorter
+  // pattern pieces it contains, so the city between them is hidden too.
+  const covers = (a: Span, b: Span) => a.start <= b.start && b.end <= a.end && a.end - a.start > b.end - b.start;
+  const rank = (s: Span) =>
+    s.source === "nano" && s.type === "ADDRESS" && spans.some((r) => r.source === "regex" && (r.type === "ADDRESS" || r.type === "POSTAL_CODE") && covers(s, r))
+      ? 3.5
+      : RANK[s.source];
   const sorted = [...spans].sort(
-    (a, b) => RANK[b.source] - RANK[a.source] || b.end - b.start - (a.end - a.start) || a.start - b.start,
+    (a, b) => rank(b) - rank(a) || b.end - b.start - (a.end - a.start) || a.start - b.start,
   );
   const kept: Span[] = [];
   for (const s of sorted) {

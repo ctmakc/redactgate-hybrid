@@ -105,6 +105,10 @@ export function locate(full: string, chunkOffset: number, chunk: string, ents: N
       dropped++;
       continue;
     }
+    if (type === "DATE" && !specificDate(text)) {
+      dropped++;
+      continue;
+    }
     const hits = findAll(chunk, text);
     if (hits.length === 0) {
       dropped++;
@@ -114,6 +118,13 @@ export function locate(full: string, chunkOffset: number, chunk: string, ents: N
   }
   void full;
   return { spans, dropped };
+}
+
+/** A DATE worth hiding pins a day: "March 3, 1984", "2026-08-14", "14/08". A bare month, a bare year or "last year" is not. */
+export function specificDate(t: string): boolean {
+  if (!/\d/.test(t)) return false;
+  if (/^\s*(?:19|20)\d{2}\s*$/.test(t)) return false;
+  return /\d{1,4}[/.-]\d{1,2}|\p{L}{3,}\.?\s+\d{1,2}\b|\b\d{1,2}(?:st|nd|rd|th)?\s+\p{L}{3,}/u.test(t);
 }
 
 /**

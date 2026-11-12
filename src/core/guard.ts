@@ -15,6 +15,8 @@ export interface Leak {
   rule?: string;
 }
 
+const SOFT = new Set<string>(["PERSON", "ORG"]);
+
 const squash = (s: string) => s.replace(/[\s().-]/g, "");
 
 export function checkOutgoing(outgoing: string, vault: Vault): { ok: boolean; leaks: Leak[] } {
@@ -31,7 +33,8 @@ export function checkOutgoing(outgoing: string, vault: Vault): { ok: boolean; le
       : new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(v.toLowerCase())}($|[^\\p{L}\\p{N}])`, "u").test(lower);
     if (hit) leaks.push({ type: e.type, token: e.token, reason: "vault-value" });
   }
-  for (const s of detectRegex(withoutTokens)) leaks.push({ type: s.type, reason: "regex", rule: s.rule });
+  // Soft patterns (names, organizations) are suggestions the user may let through; hard ones always block.
+  for (const s of detectRegex(withoutTokens)) if (!SOFT.has(s.type)) leaks.push({ type: s.type, reason: "regex", rule: s.rule });
   return { ok: leaks.length === 0, leaks };
 }
 

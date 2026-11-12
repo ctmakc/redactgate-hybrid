@@ -168,3 +168,55 @@ describe("ledger", () => {
     expect(loadLedger(store)).toHaveLength(1);
   });
 });
+
+describe("street address floor", () => {
+  it("finds addresses in the demos without Nano", () => {
+    const got = detectRegex("new address is 1187 Bank Street, Unit 4, Ottawa and 41 Laurier Avenue East, Ottawa").filter((s) => s.type === "ADDRESS").map((s) => s.text);
+    expect(got).toEqual(["1187 Bank Street, Unit 4", "41 Laurier Avenue East"]);
+  });
+  it("ignores amounts and years", () => {
+    expect(detectRegex("about 6,200 so far in 2026 Tax Year").filter((s) => s.type === "ADDRESS")).toEqual([]);
+  });
+});
+
+describe("detection quality fixes", () => {
+  it("catches the name under a sign-off", async () => {
+    const { detectRegex } = await import("../src/core/regex");
+    const hits = detectRegex("Please confirm.\n\nThanks,\nMarco Ricci\nmarco@ricci.ca").filter((s) => s.type === "PERSON");
+    expect(hits.map((h) => h.text)).toEqual(["Marco Ricci"]);
+    expect(detectRegex("Best regards,\nthe team").filter((s) => s.type === "PERSON")).toEqual([]);
+  });
+  it("drops vague dates from Nano", async () => {
+    const { specificDate } = await import("../src/core/nano");
+    for (const v of ["October", "last year", "2026", "August"]) expect(specificDate(v)).toBe(false);
+    for (const v of ["March 3, 1984", "2026-08-14", "14/08/2025", "3 March 1984", "Oct 14"]) expect(specificDate(v)).toBe(true);
+  });
+  it("prefers a full Nano address over the pattern pieces inside it", async () => {
+    const { mergeSpans } = await import("../src/core/merge");
+    const t = "1187 Bank Street, Unit 4, Ottawa, ON K1S 3X7";
+    const out = mergeSpans([
+      { start: 0, end: 24, type: "ADDRESS", text: t.slice(0, 24), source: "regex" },
+      { start: 38, end: 45, type: "POSTAL_CODE", text: "K1S 3X7", source: "regex" },
+      { start: 0, end: t.length, type: "ADDRESS", text: t, source: "nano" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].text).toBe(t);
+  });
+});
+
+describe("guard on tokenized text", () => {
+  it("does not read the next line's word as an MRN after a token", async () => {
+    const { detectRegex } = await import("../src/core/regex");
+    expect(detectRegex("MRN:  \nAttending: Dr. X").filter((s) => s.type === "MRN")).toEqual([]);
+    expect(detectRegex("MRN: RVH-2209114").map((s) => s.text)).toContain("RVH-2209114");
+  });
+});
+
+describe("organization floor", () => {
+  it("finds clinics, boards and companies by suffix", async () => {
+    const { detectRegex } = await import("../src/core/regex");
+    const t = "RIDEAU VALLEY HEALTH CENTRE - DISCHARGE\\nsee Dr. B (Westboro Family Practice, 613) and Harbourline Logistics; the bank said no; Ottawa-Carleton School Board.";
+    const orgs = detectRegex(t).filter((s) => s.type === "ORG").map((s) => s.text);
+    expect(orgs).toEqual(["RIDEAU VALLEY HEALTH CENTRE", "Westboro Family Practice", "Harbourline Logistics", "Ottawa-Carleton School Board"]);
+  });
+});

@@ -14,6 +14,18 @@ export interface Rule {
   validate?: (v: string) => boolean;
 }
 
+const ORG_SUFFIX = [
+  "Health Centre", "Health Center", "Medical Centre", "Medical Center", "Hospital", "Clinic", "Family Practice",
+  "School Board", "University", "College", "Credit Union", "Bank", "Logistics", "Group", "Associates", "Partners",
+  "Inc", "Ltd", "LLC", "LLP", "Corp", "Corporation",
+];
+const ORG_RE = new RegExp(
+  String.raw`(?<![\p{L}-])(?:(?:\p{Lu}[\p{Ll}']+(?:-\p{Lu}?[\p{Ll}']+)*|\p{Lu}{2,}|&)[ \t]+){1,4}(?:` +
+    ORG_SUFFIX.flatMap((x) => [x, x.toUpperCase()]).join("|") +
+    String.raw`)(?![\p{L}])`,
+  "gu",
+);
+
 export const RULES: Rule[] = [
   { type: "EMAIL", name: "Email address", re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g },
   { type: "CREDIT_CARD", name: "Payment card, Luhn-checked", re: /\b\d(?:[ -]?\d){12,18}\b/g, validate: luhn },
@@ -36,18 +48,31 @@ export const RULES: Rule[] = [
   {
     type: "MRN",
     name: "Medical record / patient ID (keyword-anchored)",
-    re: /\b(?:MRN|medical\s+record\s+(?:no\.?|number|#)|patient\s+(?:id|no\.?|number|#)|chart\s*(?:no\.?|#))\s*[:#]?\s*(?<value>[A-Z0-9][A-Z0-9-]{3,15})\b/dgi,
+    re: /\b(?:MRN|medical\s+record\s+(?:no\.?|number|#)|patient\s+(?:id|no\.?|number|#)|chart\s*(?:no\.?|#))[ \t]*[:#]?[ \t]*(?<value>[A-Z0-9][A-Z0-9-]{3,15})\b/dgi,
+    validate: (v) => /\d/.test(v),
   },
   {
     type: "ACCOUNT",
     name: "Account / policy / claim number (keyword-anchored)",
-    re: /\b(?:account|acct|policy|claim|member|client|customer|file|case|reference|ref)\s*(?:no\.?|number|#|id)\s*[:#]?\s*(?<value>[A-Z0-9][A-Z0-9-]{3,20})\b/dgi,
+    re: /\b(?:account|acct|policy|claim|member|client|customer|file|case|reference|ref)\s*(?:no\.?|number|#|id)[ \t]*[:#]?[ \t]*(?<value>[A-Z0-9][A-Z0-9-]{3,20})\b/dgi,
+    validate: (v) => /\d/.test(v),
   },
   {
     type: "DATE_OF_BIRTH",
     name: "Date of birth (keyword-anchored)",
     re: /\b(?:born(?:\s+on)?|DOB|D\.O\.B\.|date\s+of\s+birth|birth\s*date)\s*[:-]?\s*(?<value>\d{4}-\d{2}-\d{2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{4})/dgi,
   },
+  {
+    type: "ADDRESS",
+    name: "Street address (number + street type)",
+    re: /\b\d{1,6}(?:-\d{1,6})?\s+(?:[A-Z][a-zA-Z'.-]+\s+){1,4}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Crescent|Cres|Court|Ct|Place|Pl|Terrace|Parkway|Pkwy|Highway|Hwy|Circle|Trail|Square|Sq)\.?(?:\s+(?:East|West|North|South|E|W|N|S))?(?:,?\s+(?:Unit|Apt|Suite|Ste|#)\.?\s*[A-Z0-9-]{1,6})?\b/g,
+  },
+  {
+    type: "PERSON",
+    name: "Name under a sign-off (Thanks, / Best regards, …)",
+    re: /(?:^|\n)[ \t]*(?:[Tt]hanks|[Tt]hank you|[Mm]any thanks|[Bb]est|[Bb]est regards|[Kk]ind regards|[Rr]egards|[Ss]incerely|[Cc]heers|[Ww]armly|[Aa]ll the best|[Yy]ours truly)[,.!]?[ \t]*\r?\n[ \t]*(?<value>\p{Lu}[\p{L}'-]+(?:[ \t]\p{Lu}[\p{L}'-]+){0,2})(?=[ \t]*(?:\r?\n|,|$))/dgu,
+  },
+  { type: "ORG", name: "Organization name (capitalized words + Clinic, Bank, Inc …)", re: ORG_RE },
   { type: "POSTAL_CODE", name: "Canadian postal code", re: /\b[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d\b/g },
   { type: "IP_ADDRESS", name: "IPv4 address", re: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g },
 ];
