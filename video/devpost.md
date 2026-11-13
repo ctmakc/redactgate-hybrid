@@ -72,7 +72,7 @@ firebase-ai-logic, gemini-nano, gemini, firebase-hosting, firebase-app-check, re
 ## Links
 - Live demo: https://redactgate-hybrid-2026.web.app
 - Code: https://github.com/ctmakc/redactgate-hybrid
-- Video: (YouTube)
+- Video: https://www.youtube.com/watch?v=oh7n_Uv76KM
 
 ## Platform
 Web (Chrome)

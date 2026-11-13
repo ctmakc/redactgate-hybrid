@@ -4,6 +4,8 @@ Private details stay on your device. Only tokens reach the cloud.
 
 **Live demo:** https://redactgate-hybrid-2026.web.app (desktop Chrome with Gemini Nano for the full flow)
 
+**Watch the demo (1:49):** https://www.youtube.com/watch?v=oh7n_Uv76KM
+
 RedactGate Hybrid is a pass-through hatch for AI prompts. You paste a document (a client email, a
 clinic note, a résumé) and ask for help with it. Gemini Nano, running in the browser through
 Firebase AI Logic, finds the names, organizations, addresses and numbers and swaps each one for a
