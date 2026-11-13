@@ -2,7 +2,8 @@
 """Record the RedactGate Hybrid demo from the live site, with a real Gemini Nano.
 
 Desktop Chrome (with the on-device model already downloaded in its profile) runs in kiosk mode inside
-Xvfb and is grabbed with ffmpeg x11grab. Narration is edge-tts; every line and every model wait is
+Xvfb; the page itself is captured through the CDP screencast (x11grab sees a stale frame when Chrome
+composites on the GPU), each frame stamped with its own time. Narration is edge-tts; every line and every model wait is
 logged with its wall-clock time so build.py can align audio, shorten the waits and write subtitles.
 
 Usage: REC_PROFILE=<chrome profile with Nano> python3 video/record.py
@@ -108,7 +109,14 @@ def wait_model(pg, js: str, label: str, timeout: int = 240000) -> None:
 
 
 def scroll(pg, sel: str, block: str = "start", pause: float = 1.0) -> None:
-    pg.evaluate("([s,b]) => document.querySelector(s).scrollIntoView({behavior:'smooth', block:b})", [sel, block])
+    # Chrome in Xvfb jumps on native smooth scroll, so the glide is driven from rAF (ease-in-out, 700 ms)
+    pg.evaluate("""([s, b]) => new Promise(done => {
+      const el = document.querySelector(s), r = el.getBoundingClientRect();
+      const off = b === 'center' ? (innerHeight - r.height) / 2 : 0;
+      const y0 = scrollY, y1 = Math.max(0, Math.min(scrollY + r.top - off, document.documentElement.scrollHeight - innerHeight));
+      const t0 = performance.now(), D = 700, ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      (function f(now) { const k = Math.min(1, (now - t0) / D); scrollTo({top: y0 + (y1 - y0) * ease(k), behavior: 'instant'}); k < 1 ? requestAnimationFrame(f) : done(); })(t0);
+    })""", [sel, block])
     zz(pause)
 
 
@@ -125,7 +133,8 @@ def main() -> None:
             "--no-first-run", "--no-default-browser-check", "--disable-sync", "--kiosk", "--window-position=0,0",
             "--window-size=1920,1080", "--force-device-scale-factor=1.25", "--lang=en-US", "--hide-scrollbars",
             "--enable-features=OptimizationGuideOnDeviceModel:BypassPerfRequirement/true,PromptAPIForGeminiNano,PromptAPIForGeminiNanoMultimodalInput",
-            "--disable-features=Translate,TranslateUI", "--enable-gpu", "--ignore-gpu-blocklist", "about:blank"],
+            "--disable-features=Translate,TranslateUI,CalculateNativeWinOcclusion", "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding", "--disable-background-timer-throttling", "--enable-gpu", "--ignore-gpu-blocklist", "about:blank"],
             env={**os.environ, "DISPLAY": DISPLAY}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(4)
     ff = None
@@ -164,6 +173,8 @@ def main() -> None:
             zz(1.0)
             pg.click("#scan")
             wait_model(pg, "!document.getElementById('step-review').hidden", "nano-scan")
+            m = pg.evaluate("document.getElementById('scan-meta').textContent")
+            assert "Gemini Nano found" in m, f"Nano scan failed: {m}"
             s.done()
             zz(0.6)
             s = Say("review")
@@ -186,6 +197,7 @@ def main() -> None:
             scroll(pg, ".hatch", "center", pause=1.2)
             pg.click("#send")
             wait_model(pg, "!document.getElementById('answer').hidden && document.getElementById('guard').dataset.state !== 'busy'", "cloud", 120000)
+            assert pg.evaluate("document.getElementById('raw-tier').textContent") == "in_cloud", "cloud answer missing"
             zz(0.5)
             scroll(pg, "#answer", pause=1.0)
             s.done(0.8)
@@ -197,13 +209,15 @@ def main() -> None:
             scroll(pg, ".hatch", "center", pause=1.2)
             pg.click("#run-local")
             wait_model(pg, "document.getElementById('guard').dataset.state !== 'busy'", "nano-local")
+            g = pg.evaluate("document.getElementById('guard-text').textContent")
+            assert g.startswith("Answered on this device"), f"local answer failed: {g}"
             zz(0.4)
             scroll(pg, "#answer", pause=1.0)
             s.done(0.8)
             s = Say("outro")
             scroll(pg, "#how", pause=1.0)
             zz(max(0, s.d * 0.5))
-            pg.evaluate("() => scrollTo({top:0, behavior:'smooth'})")
+            scroll(pg, "body", pause=0.2)
             s.done(2.0)
             EV.append({"kind": "end", "t": round(now(), 3)})
     finally:

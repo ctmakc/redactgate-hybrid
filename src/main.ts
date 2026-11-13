@@ -349,7 +349,13 @@ $("run-local").addEventListener("click", async () => {
   const task = taskEl.value.trim() || "Summarize this document in three bullet points.";
   try {
     const { h, models } = await hybrid();
-    const r = await h.run(models.local, `${task}\n\nDocument:\n${scannedText}`);
+    const prompt = `${task}\n\nDocument:\n${scannedText}`;
+    // Chrome's Prompt API now and then fails a fresh session with kErrorUnknown; one retry on the device, never the cloud.
+    const r = await h.run(models.local, prompt).catch((e: Error) => {
+      if (!/unknown/i.test(e.message)) throw e;
+      setGuard("busy", "Gemini Nano is answering on this device (second try)…");
+      return h.run(models.local, prompt);
+    });
     if (r.source !== "on_device") throw new Error(`expected on_device, got ${r.source}`);
     showAnswer(r, null);
     setGuard(guardOk ? "ok" : "blocked", `Answered on this device in ${(r.ms / 1000).toFixed(1)} s. Nothing left.`);
