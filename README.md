@@ -20,7 +20,7 @@ Built for the #BuildHybridAI hackathon (Firebase AI Logic hybrid inference).
 | 1b. Find structured IDs (SIN, OHIP, cards, IBAN, SSN, phones…) | Checksum-verified patterns, on device | none (plain TypeScript) |
 | 2. Swap values for stable tokens, keep the table in tab memory | On device | none |
 | 3. Leak guard re-scans the outgoing text for every real value and pattern | On device | none |
-| 4. Do the task (summarize, draft a reply, review) on the tokenized text | Cloud Gemini (`gemini-3.5-flash-lite`) | `ONLY_IN_CLOUD` |
+| 4. Do the task (summarize, draft a reply, review) on the tokenized text | Cloud Gemini (`gemini-3.5-flash-lite`) | `ONLY_IN_CLOUD`, App Check token on every call |
 | 5. Fill the real values back into the answer, flag made-up tokens | On device | none |
 | Alt. Keep everything local: the whole task answered by Nano | Gemini Nano, on device | `ONLY_ON_DEVICE` |
 
@@ -78,6 +78,11 @@ Firebase setup: a Firebase project with **AI Logic** enabled on the **Gemini Dev
 (free tier, Spark plan), and a web app registered for its config. `firebase-config.local.ts` is
 git-ignored.
 
+**App Check** guards the AI Logic endpoint: the app registers a reCAPTCHA Enterprise score key
+with Firebase App Check (`appCheckSiteKey` in the config file), and every Firebase AI Logic call
+carries the App Check token. In `npm run dev` the SDK prints a debug token to the console instead;
+add it under App Check > Apps > Manage debug tokens in the Firebase console.
+
 Demo documents in the app are fictional.
 
 ## Layout
@@ -103,4 +108,4 @@ test/                 vitest suites
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+Apache License 2.0, see [LICENSE](LICENSE).

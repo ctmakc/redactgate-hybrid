@@ -18,13 +18,18 @@ let hybridP: Promise<{ h: Hybrid; models: HybridModels }> | null = null;
 function hybrid() {
   return (hybridP ??= Promise.all([
     import("firebase/app"),
+    import("firebase/app-check"),
     import("./hybrid"),
     // Created locally from firebase-config.example.ts; git-ignored.
     import("./firebase-config.local"),
-  ]).then(([{ initializeApp }, h, { firebaseConfig }]) => ({
-    h,
-    models: h.createModels(initializeApp(firebaseConfig), { jsonSchema: NANO_SCHEMA }),
-  })));
+  ]).then(([{ initializeApp }, ac, h, { firebaseConfig, appCheckSiteKey }]) => {
+    const app = initializeApp(firebaseConfig);
+    // App Check: every Firebase AI Logic call carries a reCAPTCHA Enterprise attestation.
+    // In `npm run dev` a debug token is printed to the console instead; register it in the Firebase console.
+    if (import.meta.env.DEV) (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    ac.initializeAppCheck(app, { provider: new ac.ReCaptchaEnterpriseProvider(appCheckSiteKey), isTokenAutoRefreshEnabled: true });
+    return { h, models: h.createModels(app, { jsonSchema: NANO_SCHEMA }) };
+  }));
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;

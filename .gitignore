@@ -2,3 +2,4 @@ node_modules
 dist
 src/firebase-config.local.ts
 .firebase
+video/out/

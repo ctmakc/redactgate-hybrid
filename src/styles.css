@@ -320,3 +320,6 @@ select { width: auto; padding: 6px 8px; }
 /* ---------- bug button (MMIX kit), re-tokened to the hatch ---------- */
 .bugr { --bugr-bg: var(--ink); --bugr-fg: var(--panel); --bugr-dim: var(--dim-on-ink); --bugr-line: var(--line-on-ink); --bugr-accent: var(--placard); --bugr-accent-ink: var(--ink); }
 .bugr-btn { border-radius: 0; }
+
+/* The reCAPTCHA notice is in the footer, so the floating badge is hidden. */
+.grecaptcha-badge { visibility: hidden; }

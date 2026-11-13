@@ -1,0 +1,12 @@
+{
+ "hero": "People paste client emails, clinic notes and résumés into AI chat every day. That sends names, health numbers and bank accounts to a server they don't control. RedactGate Hybrid splits the job with Firebase AI Logic hybrid inference.",
+ "demo": "Here is a client email to an accountant. It holds a social insurance number, a bank account, a phone number and a spouse's name.",
+ "scan": "First, Gemini Nano reads it right here in Chrome. Firebase AI Logic runs it in only-on-device mode with a JSON schema, so the raw text never leaves. Checksum-verified patterns catch the numbers at the same time.",
+ "review": "Every private detail is now highlighted, with what found it: Gemini Nano or a pattern. The cloud room on the right shows exactly what will be sent: tokens like PERSON one in place of the real values.",
+ "interlock": "The hatch in the middle is a leak guard. If I let the SIN through, the guard re-scans the outgoing text, finds the pattern, and the cloud door stays shut. Hide it again, and the door opens.",
+ "custody": "The custody split says it plainly. Real values stay in this tab's memory. Only tokens go to the cloud.",
+ "send": "Now the task goes to Gemini 3.5 Flash-Lite in only-in-cloud mode. The answer comes back with tokens, the badge shows the inference source, in cloud, and the real names are filled back in on the device.",
+ "ledger": "Every run lands in a local ledger: the tier, the model, how many tokens of each type, and the exact text that left this device.",
+ "local": "And when a document should not leave at all, one click runs the whole task with Gemini Nano on the device. No cloud call.",
+ "outro": "That is the hybrid split: private detection on the device, heavy reasoning in the cloud, and a guard in between. RedactGate Hybrid. Your document stays here. Only tokens go through."
+}
