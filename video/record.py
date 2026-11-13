@@ -23,6 +23,14 @@ EDGE_TTS = os.environ.get("EDGE_TTS", "/data/venvs/edge-tts/bin/edge-tts")
 VOICE, RATE = "en-US-AndrewNeural", "+6%"
 NARR = json.loads((HERE / "narration.json").read_text())
 T0 = 0.0
+PG = None  # sync Playwright only dispatches CDP events while it is waiting, so sleeps go through the page
+
+
+def zz(s: float) -> None:
+    if PG is not None:
+        PG.wait_for_timeout(max(0.0, s) * 1000)
+    else:
+        time.sleep(s)
 EV: list[dict] = []
 
 
@@ -54,7 +62,43 @@ class Say:
     def done(self, gap: float = 0.35) -> None:
         left = self.t + self.d + gap - now()
         if left > 0:
-            time.sleep(left)
+            zz(left)
+
+
+class Cast:
+    """CDP screencast of the page only (no browser UI), frames stamped with wall-clock time."""
+    def __init__(self, pg):
+        self.dir = OUT / "frames"; self.dir.mkdir(parents=True, exist_ok=True)
+        for f in self.dir.glob("*.jpg"):
+            f.unlink()
+        self.frames: list[tuple[float, str]] = []
+        self.cdp = pg.context.new_cdp_session(pg)
+        self.cdp.on("Page.screencastFrame", self.on_frame)
+        self.cdp.send("Page.startScreencast", {"format": "jpeg", "quality": 92, "maxWidth": 1920, "maxHeight": 1080, "everyNthFrame": 1})
+
+    def on_frame(self, ev):
+        import base64
+        name = self.dir / f"{len(self.frames):06d}.jpg"
+        name.write_bytes(base64.b64decode(ev["data"]))
+        self.frames.append((ev["metadata"]["timestamp"] - T0, name.name))
+        self.cdp.send("Page.screencastFrameAck", {"sessionId": ev["sessionId"]})
+
+    def stop(self):
+        try:
+            self.cdp.send("Page.stopScreencast")
+        except Exception:
+            pass
+        fr = self.frames
+        lines = []
+        for i, (t, n) in enumerate(fr):
+            nxt = fr[i + 1][0] if i + 1 < len(fr) else t + 0.5
+            lines += [f"file '{n}'", f"duration {max(0.001, nxt - t):.4f}"]
+        lines.append(f"file '{fr[-1][1]}'")
+        (self.dir / "list.txt").write_text("\n".join(lines) + "\n")
+        EV.append({"kind": "video0", "t": round(fr[0][0], 3)})
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(self.dir / "list.txt"),
+                        "-vf", "fps=30,scale=1920:1080:flags=lanczos", "-c:v", "libx264", "-preset", "veryfast", "-crf", "16",
+                        "-pix_fmt", "yuv420p", str(OUT / "raw.mp4")], check=True)
 
 
 def wait_model(pg, js: str, label: str, timeout: int = 240000) -> None:
@@ -65,16 +109,16 @@ def wait_model(pg, js: str, label: str, timeout: int = 240000) -> None:
 
 def scroll(pg, sel: str, block: str = "start", pause: float = 1.0) -> None:
     pg.evaluate("([s,b]) => document.querySelector(s).scrollIntoView({behavior:'smooth', block:b})", [sel, block])
-    time.sleep(pause)
+    zz(pause)
 
 
 def main() -> None:
-    global T0
+    global T0, PG
     TTS.mkdir(parents=True, exist_ok=True)
     for k in NARR:
         tts(NARR[k])  # synthesize everything before recording
     xvfb = chrome = None
-    if os.environ.get("REC_LAUNCH", "1") == "1":
+    if os.environ.get("REC_LAUNCH", "0") == "1":
         xvfb = subprocess.Popen(["Xvfb", DISPLAY, "-screen", "0", "1920x1080x24", "-nolisten", "tcp"])
         time.sleep(1)
         chrome = subprocess.Popen(["/opt/google/chrome/chrome", f"--user-data-dir={PROFILE}", f"--remote-debugging-port={PORT}",
@@ -91,6 +135,8 @@ def main() -> None:
             pages = b.contexts[0].pages
             pg = next((x for x in pages if 'web.app' in x.url), pages[0])
             pg.bring_to_front()
+            emu = pg.context.new_cdp_session(pg)
+            emu.send("Emulation.setDeviceMetricsOverride", {"width": 1536, "height": 864, "deviceScaleFactor": 1.25, "mobile": False})
             pg.goto(URL)
             pg.evaluate("() => { for (const k of Object.keys(localStorage)) localStorage.removeItem(k); }")
             pg.reload()
@@ -99,40 +145,38 @@ def main() -> None:
             time.sleep(2.5)  # hero entrance finishes before the take starts
             pg.reload(); pg.wait_for_function("document.getElementById('nano-state').textContent !== 'checking'"); time.sleep(0.2)
             T0 = time.time()
-            ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "x11grab", "-draw_mouse", "0", "-framerate", "30",
-                                   "-video_size", "1920x1080", "-i", f"{DISPLAY}.0", "-c:v", "libx264", "-preset", "veryfast",
-                                   "-crf", "16", "-pix_fmt", "yuv420p", str(OUT / "raw.mp4")], stdin=subprocess.PIPE)
+            PG = pg; cast = Cast(pg); ff = cast
             EV.append({"kind": "rec", "t": round(now(), 3)})
-            time.sleep(1.5)
+            zz(1.5)
             pg.evaluate("() => { const d = document.createElement('div'); d.id = 'sync'; d.style.cssText = 'position:fixed;inset:0;background:#00E040;z-index:2147483647'; document.body.append(d); }")
             EV.append({"kind": "flash", "t": round(now(), 3)})
-            time.sleep(0.5)
+            zz(0.5)
             pg.evaluate("() => document.getElementById('sync').remove()")
-            time.sleep(0.8)
+            zz(0.8)
 
             s = Say("hero"); s.done()
             s = Say("demo")
-            pg.click('.demo[data-demo="client-email"]'); time.sleep(0.3)
+            pg.click('.demo[data-demo="client-email"]'); zz(0.3)
             scroll(pg, "#device", pause=1.2)
             pg.evaluate("() => { const t = document.getElementById('doc'); t.scrollTop = 0; }")
             s.done()
             s = Say("scan")
-            time.sleep(1.0)
+            zz(1.0)
             pg.click("#scan")
             wait_model(pg, "!document.getElementById('step-review').hidden", "nano-scan")
             s.done()
-            time.sleep(0.6)
+            zz(0.6)
             s = Say("review")
             scroll(pg, "#step-review", pause=1.5)
-            time.sleep(max(0, s.d * 0.55 - 1.5))
+            zz(max(0, s.d * 0.55 - 1.5))
             scroll(pg, "#device", "start", pause=0.5)
             s.done()
             s = Say("interlock")
             scroll(pg, "#step-review", pause=1.0)
-            time.sleep(2.2)
+            zz(2.2)
             sin = pg.locator("#doc-view .pii", has_text="728 146 390").first
             sin.click(); EV.append({"kind": "mark", "label": "sin-off", "t": round(now(), 3)})
-            time.sleep(4.0)
+            zz(4.0)
             sin.click(); EV.append({"kind": "mark", "label": "sin-on", "t": round(now(), 3)})
             s.done(0.8)
             s = Say("custody")
@@ -142,7 +186,7 @@ def main() -> None:
             scroll(pg, ".hatch", "center", pause=1.2)
             pg.click("#send")
             wait_model(pg, "!document.getElementById('answer').hidden && document.getElementById('guard').dataset.state !== 'busy'", "cloud", 120000)
-            time.sleep(0.5)
+            zz(0.5)
             scroll(pg, "#answer", pause=1.0)
             s.done(0.8)
             s = Say("ledger")
@@ -153,18 +197,18 @@ def main() -> None:
             scroll(pg, ".hatch", "center", pause=1.2)
             pg.click("#run-local")
             wait_model(pg, "document.getElementById('guard').dataset.state !== 'busy'", "nano-local")
-            time.sleep(0.4)
+            zz(0.4)
             scroll(pg, "#answer", pause=1.0)
             s.done(0.8)
             s = Say("outro")
             scroll(pg, "#how", pause=1.0)
-            time.sleep(max(0, s.d * 0.5))
+            zz(max(0, s.d * 0.5))
             pg.evaluate("() => scrollTo({top:0, behavior:'smooth'})")
             s.done(2.0)
             EV.append({"kind": "end", "t": round(now(), 3)})
     finally:
         if ff:
-            ff.communicate(b"q", timeout=30)
+            ff.stop()
         (OUT / "events.json").write_text(json.dumps(EV, indent=1))
         if chrome:
             chrome.terminate(); chrome.wait(timeout=20)
