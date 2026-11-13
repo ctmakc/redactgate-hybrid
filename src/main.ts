@@ -278,7 +278,7 @@ function tokHtml(text: string, cls = "tok") {
 
 function renderOutgoing() {
   $("outgoing").innerHTML = tokHtml(outgoing);
-  $("out-meta").textContent = `${outgoing.length.toLocaleString()} characters · ${vault.size} tokens · model ${CLOUD_MODEL}`;
+  $("out-meta").textContent = `${outgoing.length.toLocaleString("en-CA")} characters · ${vault.size} tokens · model ${CLOUD_MODEL}`;
 }
 
 function renderCustody(active: Span[]) {
@@ -295,7 +295,7 @@ function renderCustody(active: Span[]) {
     .map((e) => `<tr><td>[[${e.token}]]</td><td>${esc(e.value)}</td><td>${name(src.get(`${e.type}:${e.value.trim().toLowerCase()}`), e.type)}</td></tr>`)
     .join("");
   $("tok-list").innerHTML = vault.entries().map((e) => `<li class="tok">[[${e.token}]]</li>`).join("");
-  $("goes-meta").textContent = `${outgoing.length.toLocaleString()} characters of tokenized text and the task. No real values.`;
+  $("goes-meta").textContent = `${outgoing.length.toLocaleString("en-CA")} characters of tokenized text and the task. No real values.`;
 }
 
 function setGuard(state: "idle" | "busy" | "ok" | "blocked", text: string, leaks: Leak[] = []) {
@@ -442,10 +442,10 @@ function renderLedger() {
     .slice()
     .reverse()
     .map((e) => {
-      const when = new Date(e.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      const when = new Date(e.at).toLocaleString("en-CA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
       const counts = Object.entries(e.tokensByType).map(([t, n]) => `${t} ${n}`).join(" · ");
       const what = e.tier === "in_cloud"
-        ? `<details><summary>Sent ${e.sentChars.toLocaleString()} characters: ${esc(e.task || "task")}</summary><pre>${tokHtml(e.sent)}</pre></details>`
+        ? `<details><summary>Sent ${e.sentChars.toLocaleString("en-CA")} characters: ${esc(e.task || "task")}</summary><pre>${tokHtml(e.sent)}</pre></details>`
         : `<span>Nothing sent: ${esc(e.task || "task")} ran on Gemini Nano</span>`;
       return `<li><span class="when">${when}</span><span><span class="tier ${e.tier === "on_device" ? "tier-dev" : ""}">${esc(e.inferenceSource)}</span></span><div>${what}</div><span class="counts">${counts || "0 tokens"}<br>${e.ms} ms</span></li>`;
     })
